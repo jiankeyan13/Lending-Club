@@ -82,22 +82,19 @@ for fold, (train_idx, val_idx) in enumerate(skf.split(X, y), 1):
             self.model = nn.Sequential(
                 nn.Linear(input_dim, 64),
                 nn.ReLU(),
-                nn.Dropout(0.3),
                 nn.Linear(64, 32),
                 nn.ReLU(),
-                nn.Dropout(0.3),
                 nn.Linear(32, 1),
-                nn.Sigmoid()
             )
         def forward(self, x):
             return self.model(x)
 
     mlp = MLP(X_train_tensor.shape[1])
     pos_weight = torch.tensor([(y_train == 0).sum() / (y_train == 1).sum()], dtype=torch.float32)
-    criterion = nn.BCELoss(pos_weight=pos_weight)
-    optimizer = optim.Adam(mlp.parameters(), lr=0.001, weight_decay=1e-4)
+    criterion = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
+    optimizer = optim.Adam(mlp.parameters(), lr=0.002)
 
-    EPOCHS = 30
+    EPOCHS = 25
     mlp.train()
     for epoch in range(EPOCHS):
         for xb, yb in train_loader:
@@ -109,7 +106,7 @@ for fold, (train_idx, val_idx) in enumerate(skf.split(X, y), 1):
 
     mlp.eval()
     with torch.no_grad():
-        mlp_val_pred = mlp(X_val_tensor).squeeze().numpy()
+        mlp_val_pred = torch.sigmoid(mlp(X_val_tensor)).squeeze().numpy()
     mlp_auc = roc_auc_score(y_val, mlp_val_pred)
     mlp_aucs.append(mlp_auc)
     print(f"  MLP (PyTorch) AUC: {mlp_auc:.4f}")
