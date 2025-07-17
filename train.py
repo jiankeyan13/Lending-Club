@@ -1,16 +1,13 @@
 import pandas as pd
 import numpy as np
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import roc_auc_score, roc_curve
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import train_test_split, StratifiedKFold
+from sklearn.metrics import roc_auc_score
 from xgboost import XGBClassifier
 from sklearn.preprocessing import MinMaxScaler
-import matplotlib.pyplot as plt
 import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader, TensorDataset
-from sklearn.model_selection import StratifiedKFold
 
 # 1. 读取数据
 DATA_PATH = 'data/new_train.csv'
@@ -20,13 +17,10 @@ df = pd.read_csv(DATA_PATH)
 X = df.drop(columns=['isDefault'])
 y = df['isDefault'].astype(int)
 
-# 3. 划分训练集和验证集
-X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.2, random_state=3407, stratify=y)
-
 N_SPLITS = 5
 skf = StratifiedKFold(n_splits=N_SPLITS, shuffle=True, random_state=3407)
 
-rf_aucs, xgb_aucs, mlp_aucs = [], [], []
+xgb_aucs, mlp_aucs, avg_aucs = [], [], []
 
 for fold, (train_idx, val_idx) in enumerate(skf.split(X, y), 1):
     print(f"\nFold {fold}")
@@ -36,14 +30,6 @@ for fold, (train_idx, val_idx) in enumerate(skf.split(X, y), 1):
     # 识别数值型特征（不包括独热编码）
     num_cols = X_train.select_dtypes(include=[np.number]).columns
     num_cols = [col for col in num_cols if not (set(X_train[col].unique()) <= {0, 1})]
-
-    # 随机森林
-    rf = RandomForestClassifier(class_weight='balanced', random_state=42, n_jobs=-1)
-    rf.fit(X_train, y_train)
-    rf_val_pred = rf.predict_proba(X_val)[:, 1]
-    rf_auc = roc_auc_score(y_val, rf_val_pred)
-    rf_aucs.append(rf_auc)
-    print(f"  Random Forest AUC: {rf_auc:.4f}")
 
     # XGBoost
     scale_pos_weight = (y_train == 0).sum() / (y_train == 1).sum()
@@ -72,9 +58,7 @@ for fold, (train_idx, val_idx) in enumerate(skf.split(X, y), 1):
     y_val_tensor = torch.tensor(y_val.values, dtype=torch.float32).unsqueeze(1)
 
     train_dataset = TensorDataset(X_train_tensor, y_train_tensor)
-    val_dataset = TensorDataset(X_val_tensor, y_val_tensor)
     train_loader = DataLoader(train_dataset, batch_size=256, shuffle=True)
-    val_loader = DataLoader(val_dataset, batch_size=1024, shuffle=False)
 
     class MLP(nn.Module):
         def __init__(self, input_dim):
@@ -84,7 +68,7 @@ for fold, (train_idx, val_idx) in enumerate(skf.split(X, y), 1):
                 nn.ReLU(),
                 nn.Linear(64, 32),
                 nn.ReLU(),
-                nn.Linear(32, 1),
+                nn.Linear(32, 1)
             )
         def forward(self, x):
             return self.model(x)
@@ -111,7 +95,13 @@ for fold, (train_idx, val_idx) in enumerate(skf.split(X, y), 1):
     mlp_aucs.append(mlp_auc)
     print(f"  MLP (PyTorch) AUC: {mlp_auc:.4f}")
 
+    # 概率平均
+    avg_pred = (xgb_val_pred + mlp_val_pred) / 2
+    avg_auc = roc_auc_score(y_val, avg_pred)
+    avg_aucs.append(avg_auc)
+    print(f"  XGB+MLP 平均概率 AUC: {avg_auc:.4f}")
+
 print("\n5折交叉验证平均AUC：")
-print(f"  Random Forest: {np.mean(rf_aucs):.4f}")
 print(f"  XGBoost: {np.mean(xgb_aucs):.4f}")
 print(f"  MLP (PyTorch): {np.mean(mlp_aucs):.4f}")
+print(f"  XGB+MLP 平均概率: {np.mean(avg_aucs):.4f}")

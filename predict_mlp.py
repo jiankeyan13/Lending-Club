@@ -74,11 +74,10 @@ for epoch in range(EPOCHS):
         loss.backward()
         optimizer.step()
 
-# 8. 预测并生成提交文件
+# 8. 预测并生成提交文件（输出概率分数）
 mlp.eval()
 with torch.no_grad():
     test_pred = torch.sigmoid(mlp(X_test_tensor)).squeeze().cpu().numpy()
-outcome = (test_pred >= 0.5).astype(int)
-output = pd.DataFrame({'id': test_id, 'outcome': outcome})
+output = pd.DataFrame({'id': test_id, 'outcome': test_pred})
 output.to_csv('output_task1.csv', index=False)
-print('output_task1.csv 已生成！') 
+print('output_task1.csv 已生成！（概率分数，适用于AUC评估）') 
