@@ -2,8 +2,10 @@ import pandas as pd
 import re
 
 def preprocess_outliers_and_missing(df):
+    # 定义本质为分类的数值型特征
+    discrete_cols = ['term', 'applicationType','delinquency_2years', 'pubRec']
     # 处理数值型特征异常值和缺失值
-    num_cols = df.select_dtypes(include=['number']).columns
+    num_cols = [col for col in df.select_dtypes(include=['number']).columns if col not in discrete_cols]
     for col in num_cols:
         # IQR异常值检测
         Q1 = df[col].quantile(0.25)
@@ -45,6 +47,10 @@ def remove_useless_features(df):
         drop_cols.append('pubRecBankruptcies')
     if 'employmentTitle' in df.columns:
         drop_cols.append('employmentTitle')
+    # 新增：删除interestRate, dti, income_div_loanAmnt
+    for col in ['interestRate', 'dti', 'income_div_loanAmnt']:
+        if col in df.columns:
+            drop_cols.append(col)
     df = df.drop(columns=drop_cols)
     return df
 
@@ -52,7 +58,7 @@ def preprocess_clean(df):
 
     # 1. term: 3->0, 5->1
     if 'term' in df.columns:
-        df['term'] = df['term'].map({3: 0, 5: 1})
+        df['term'] = df['term'].astype(str).map({'3': 0, '5': 1})
     # 2. homeOwnership: 保持原样
     # 3. purpose: 独热编码
     if 'purpose' in df.columns:
