@@ -1,4 +1,4 @@
-# 任务描述
+# 任务描述 - 2025 北邮2组 考核1
 
 信贷业务是现代金融体系的重要组成部分，银行和金融机构通过向个人和企业提供贷款来获取收益。然而，贷款违约（即借款人未能按时偿还贷款本息）是信贷业务中常见的风险之一。违约不仅会导致金融机构的资金损失，还可能影响其声誉和市场信心。因此，准确预测贷款人是否会违约对于金融机构的风险管理和决策至关重要。现在某金融机构提供过往贷款人的行为和违约情况，希望寻求有效的方法以更加准确地预测出贷款人是否会出现违约。
 
@@ -21,10 +21,7 @@ Lending-Club/
 │   └── Figure_2.png
 ├── data_pre.py
 ├── train.py
-├── predict_mlp.py
-├── predict_xgb.py
-├── average_outputs.py
-├── output_task1.csv
+├── predict.py
 └── README.md
 ```
 
@@ -56,11 +53,13 @@ Lending-Club/
   - 风险因子交互项（如 dti*revolUtil、interestRate/信用分均值）
 - **特征筛选**：删除无用或冗余特征：id、policyCode、installment、ficoRangeLow、ficoRangeHigh、pubRecBankruptcies、employmentTitle、interestRate、dti、income_div_loanAmnt 等
 - **输出**：处理后的 new_train.csv 和 new_test.csv，特征顺序和数量完全一致，便于后续建模。
+
 # 特征构建
 
 ![特征相关性](fig_res/Figure_1.png)
 
 ![特征重要性](fig_res/Figure_2.png)
+
 # 训练与评估（train.py）
 
 - **交叉验证**：采用5折StratifiedKFold交叉验证，保证评估结果稳定可靠。
@@ -71,20 +70,20 @@ Lending-Club/
 - **评估指标**：AUC-ROC（软标签概率分数，官方评测标准）
 - **输出**：每折AUC和平均AUC，便于模型对比和调优
 
-# 预测与提交
+# 预测与提交（predict.py）
 
-- **predict_mlp.py**：用全部训练集训练MLP，预测new_test.csv概率分数，生成output_task1_mlp.csv
-- **predict_xgb.py**：用全部训练集训练XGBoost，预测new_test.csv概率分数，生成output_task1_xgboost.csv
-- **average_outputs.py**：融合MLP和XGBoost概率分数，保留8位小数，生成最终output_task1.csv
+- **predict.py**：集成MLP、XGBoost、概率平均三种预测方法。
+  - 生成 output_task1_mlp.csv（MLP概率分数）
+  - 生成 output_task1_xgb.csv（XGBoost概率分数）
+  - 生成 output_task1.csv（MLP与XGBoost概率平均，推荐提交）
 - **提交格式**：output_task1.csv，包含id和outcome两列，outcome为概率分数，顺序与new_test.csv一致
 
 # 代码文件说明
 
 - data_pre.py：数据清洗、特征工程、特征创造、特征筛选
 - train.py：交叉验证训练与AUC评估，支持多模型和融合
-- predict_mlp.py：MLP模型预测与提交
-- predict_xgb.py：XGBoost模型预测与提交
-- average_outputs.py：模型融合与最终提交文件生成
+- predict.py：MLP、XGBoost、概率平均三种预测与提交
 - EDA/test.ipynb：探索性数据分析与可视化
+
 
 
