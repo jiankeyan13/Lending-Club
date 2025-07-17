@@ -32,3 +32,7 @@
   - 风险因子交互项（如 dti*revolUtil、interestRate/信用分均值）
 - 删除无用或冗余特征：id、policyCode、installment、ficoRangeLow、ficoRangeHigh、pubRecBankruptcies、employmentTitle 等
 - 输出处理后的 new_train.csv 和 new_test.csv，特征顺序和数量完全一致，便于后续建模。
+![特征相关性](fig_res/fig1.png)
+
+### 特征重要性
+![特征重要性](fig_res/fig2.png)
